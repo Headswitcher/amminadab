@@ -75,11 +75,12 @@ public:
     mx = 0;
     my = 0;
 
-    vi_w = newwin ( 10+2, max_x, 0, 0 );
+    vi_w = newwin(10+2 ,max_x/2   , 0 ,0);
     log_w = newwin ( max_y- ( 10+2 ) - 3, max_x, 10+2, 0 );
     log_iw = newwin ( max_y- ( 10+2 ) - 3 -2, max_x-2, 10+2+1, 1 );
     shell_w = newwin ( 3, max_x, 10+2+max_y- ( 10+2 ) - 3, 0 );
-
+    visual_w = newwin(10+2 ,max_x/2   , 0 ,max_x/2);
+   
     start_color();
     /*
     init_pair ( 1,COLOR_WHITE, COLOR_BLUE );
@@ -108,7 +109,7 @@ public:
     wbkgd ( log_w, COLOR_PAIR ( 2 ) );
     wbkgd ( log_iw, COLOR_PAIR ( 2 ) );
     wbkgd ( shell_w, COLOR_PAIR ( 1 ) );
-
+    wbkgd ( visual_w,COLOR_PAIR ( 1 ) );
     nodelay ( shell_w, TRUE );
     keypad ( shell_w, TRUE );
     scrollok ( log_iw, TRUE );
@@ -123,6 +124,7 @@ public:
     delwin ( log_w );
     delwin ( log_iw );
     delwin ( shell_w );
+    delwin ( visual_w);
     endwin();
   }
 
@@ -143,13 +145,49 @@ public:
   {
     if ( ncurses_mutex.try_lock() )
       {
+	int sum[10]; //soronkénti szín
+	int i,j,counter=0;
         ui();
         werase ( vi_w );
         wmove ( vi_w, 1, 0 );
         waddstr ( vi_w, msg.c_str() );
-        box ( vi_w, 0, 0 );
-        mvwprintw ( vi_w, 0, 1, " Samu's visual imagery " );
+        box ( vi_w, 0, 0 );	  
+	
+	for (i=0;i<10;i++) sum[i]=0; 
+	j=0;
+  for (i=0;i<msg.length();i++){
+	sum[j]+=msg[i];
+      if (msg[i]==';') j++;
+      }
+	for (i =0;i<10;i++) sum[i]%=10;
+	werase ( visual_w );
+        //wmove ( visual_w, 1, 0 );
+	
+	waddch ( visual_w, '\n');
+	//soros
+	for (i=0;i<8;i++){
+	wattron ( visual_w,COLOR_PAIR ( sum[i] ) );
+        for (j=0;j<25;j++) waddch ( visual_w, ' ');
+        wattroff ( visual_w,COLOR_PAIR ( sum[i]) );
+	waddch ( visual_w, '\n');
+	}
+	
+/*	//egykarakteres kiíratás
+	for (i=1;i<8;i++){
+        waddch ( visual_w, sum[i] );
+	waddch ( visual_w, '\n');
+	}
+*/	
+        box ( visual_w, 0, 0 );
+	
+	  
+	mvwprintw ( visual_w, 0, 1, "Samu's colourful imagery" );
+	//mvwprintw ( visual_w, 0, 1, " %d %d %d %d %d %d %d %d ", sum[0],sum[1],sum[3],sum[4],sum[5],sum[6],sum[7],sum[8] ); //DEBUG
+	mvwprintw ( vi_w, 0, 1, " Samu's visual imagery " );
         wrefresh ( vi_w );
+	wrefresh (visual_w);
+
+	
         ncurses_mutex.unlock();
       }
   }
@@ -198,7 +236,7 @@ public:
     msg =  msg + "\n";
     waddstr ( log_iw, msg.c_str() );
     box ( log_w, 0, 0 );
-    mvwprintw ( log_w, 0, 1, " Samu's answers " );
+    mvwprintw ( log_w, 0, 0, " Samu's answers " );
     wrefresh ( log_iw );
     ncurses_mutex.unlock();
   }
@@ -250,8 +288,8 @@ private:
       {
         mx = max_x;
         my = max_y;
-
-        wresize ( vi_w, 10+2, mx );
+	
+        wresize ( vi_w, 10+2, mx/2 );
         mvwin ( vi_w, 0, 0 );
         werase ( vi_w );
 
@@ -266,6 +304,11 @@ private:
         wresize ( shell_w, 3, mx );
         mvwin ( shell_w, 10+2+my- ( 10+2 ) - 3, 0 );
         werase ( shell_w );
+   
+
+	wresize (visual_w,10+2 ,mx/2); 
+	mvwin(visual_w,0,mx/2);
+	werase (visual_w);
 
         box ( vi_w, 0, 0 );
         mvwprintw ( vi_w, 0, 1, " Samu's visual imagery " );
@@ -277,10 +320,16 @@ private:
         mvwprintw ( shell_w, 0, 1, " Caregiver shell " );
         mvwprintw ( shell_w, 1, 1, "Norbi> Type your sentence and press [ENTER]" );
 
+	
+	box( visual_w, 0,0);
+	mvwprintw(visual_w,0,1, "Samu's colourful imagery");
+	
         wrefresh ( vi_w );
+	wrefresh ( visual_w);
         wrefresh ( log_w );
         wrefresh ( log_iw );
         wrefresh ( shell_w );
+	
       }
   }
 
@@ -289,6 +338,7 @@ private:
   WINDOW *vi_w;
   WINDOW *log_w, *log_iw;
   WINDOW *shell_w;
+  WINDOW *visual_w;
   int mx {0}, my {0};
 };
 
